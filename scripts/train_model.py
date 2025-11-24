@@ -33,24 +33,24 @@ from sklearn.pipeline import Pipeline
 
 from ast import literal_eval
 
-from amides.persist import Dumper
-from amides.sigma import RuleDatasetError, RuleSetDataset
-from amides.data import (
+from src.amides.persist import Dumper
+from src.amides.sigma import RuleDatasetError, RuleSetDataset
+from src.amides.data import (
     DataBunch,
     TrainTestValidSplit,
     TrainingResult,
     MultiTrainingResult,
 )
-from amides.models.selection import HyperParameterOptimizer, GridSearch
-from amides.features.extraction import CommandlineExtractor
-from amides.features.normalize import normalize, Normalizer
-from amides.features.deduplicate import deduplicate_samples
-from amides.features.tokenization import TokenizerFactory
-from amides.scale import (
+from src.amides.models.selection import HyperParameterOptimizer, GridSearch
+from src.amides.features.extraction import CommandlineExtractor
+from src.amides.features.normalize import normalize, Normalizer
+from src.amides.features.deduplicate import deduplicate_samples
+from src.amides.features.tokenization import TokenizerFactory
+from src.amides.scale import (
     create_symmetric_mcc_min_max_scaler,
     create_symmetric_min_max_scaler,
 )
-from amides.utils import (
+from src.amides.utils import (
     execution_time,
     get_logger,
     read_json_file,
