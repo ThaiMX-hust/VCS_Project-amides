@@ -141,7 +141,10 @@ def save_result(result):
 def load_rules_data():
     try:
         rule_set = RuleSetDataset()
-        rule_set.load_rule_set_data(events_path=events_dir, rules_path=rules_dir)
+
+        evasions_base = os.path.join("data/evasion")
+
+        rule_set.load_rule_set_data(events_path=events_dir, rules_path=rules_dir, evasions_base_path=evasions_base)
 
         return rule_set
     except FileNotFoundError as err:
@@ -341,6 +344,7 @@ def prepare_training_data(
     return train_data, vectorizer
 
 
+###############
 @execution_time
 def create_scaler(estimator: BaseEstimator, train_data: DataBunch):
     df_values = estimator.decision_function(train_data.samples)

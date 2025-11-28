@@ -296,7 +296,7 @@ class RuleDataset:
 
         return field_values
 
-    def load_events_and_filter(self, matches_evasions_path, rule_path):
+    def load_events_and_filter(self, matches_path, rule_path, evasions_path=None):
         """
         Loads rule's event and filter data from the given events and rule paths.
 
@@ -316,25 +316,38 @@ class RuleDataset:
 
         """
         _logger.debug("Loading rule dataset for %s", self._name)
-        self._load_matches_and_evasions(matches_evasions_path)
+        self._load_matches_and_evasions(matches_path,evasions_path)
         self._load_rule_filter(rule_path)
 
-    def _load_matches_and_evasions(self, matches_evasions_path):
-        properties = self._load_properties(matches_evasions_path)
+    def _load_matches_and_evasions(self, matches_path, evasions_path):
+        properties = self._load_properties(matches_path)
+        ## check 
         event_type = self._get_required_event_type(properties)
         if event_type is None:
             raise RuleDatasetError(self._name, "No event type information available.")
 
+
+        ## check
         self._evasions = Events(event_type=event_type)
         self._matches = Events(event_type=event_type)
 
-        _logger.debug(
-            "Loading matches and evasions for %s from %s",
-            self._name,
-            matches_evasions_path,
-        )
+        _logger.debug("Loading matches for %s from %s", self._name, matches_path )
+        self._insert_matches(matches_path)
 
-        self._insert_matches_and_evasions(matches_evasions_path)
+        if evasions_path and os.path.exists(evasions_path):
+            _logger.debug("Loading evasion for %s from %s", self._name, evasions_path )
+            self._insert_evasions(evasions_path)
+        else:
+            _logger.debug("Loading evasions for %s from %s", self._name, matches_path)
+            self._insert_evasions(matches_path)
+
+        # _logger.debug(
+        #     "Loading matches and evasions for %s from %s",
+        #     self._name,
+        #     matches_path,
+        # )
+
+        self._insert_matches_and_evasions(matches_path, evasions_path)
 
         if self._matches.size == 0:
             _logger.debug("No matches for rule %s", self._name)
@@ -342,6 +355,29 @@ class RuleDataset:
         if self._evasions.size == 0:
             _logger.debug("No evasions for rule %s", self._name)
 
+    def _insert_matches(self, events_dir_path):
+        """Load only match files from specified directory"""
+        try:
+            event_file_names = self._get_events_file_names(events_dir_path)
+            for event_file_name in event_file_names:
+                if self._is_match(event_file_name):
+                    event = self._load_event_from_file(events_dir_path, event_file_name)
+                    if event is not None:
+                        self._matches.add_event(event)
+        except RuleDatasetError as err:
+            _logger.warning("No matches found for %s in %s", self._name, events_dir_path)
+
+    def _insert_evasions(self, events_dir_path):
+        """Load only evasion files from the specified directory"""
+        try:
+            event_file_names = self._get_events_file_names(events_dir_path)
+            for event_file_name in event_file_names:
+                if self._is_evasion(event_file_name):
+                    event = self._load_event_from_file(events_dir_path, event_file_name)
+                    if event is not None:
+                        self._evasions.add_event(event)
+        except RuleDatasetError as err:
+            _logger.warning("No evasions found for %s in %s", self._name, events_dir_path)
     def _load_rule_filter(self, rule_path):
         try:
             _logger.debug("Loading rule filter from '%s'", rule_path)
@@ -784,7 +820,7 @@ class RuleSetDataset:
 
         return field_values
 
-    def load_rule_set_data(self, events_path, rules_path):
+    def load_rule_set_data(self, events_path, rules_path,evasions_base_path=None):
         """
         Load rules and corresponding event data from the specified directories.
         """
@@ -793,7 +829,7 @@ class RuleSetDataset:
         self._check_is_rule_set_events_dir(events_path)
         self._check_is_rule_set_rules_dir(rules_path)
 
-        self._load_rules_data(events_path, rules_path)
+        self._load_rules_data(events_path, rules_path, evasions_base_path)
 
     def _check_is_rule_set_events_dir(self, rule_set_events_dir):
         rule_set_type = self._get_rule_set_type_by_dir_name(rule_set_events_dir)
@@ -849,11 +885,11 @@ class RuleSetDataset:
                 f"Rule set dir {rule_set_rules_dir}" f"does not contain any rule data",
             )
 
-    def _load_rules_data(self, rule_set_events_path, rule_set_rules_path):
+    def _load_rules_data(self, rule_set_events_path, rule_set_rules_path, evasions_base_path=None):
         dir_names = self._get_event_dir_names(rule_set_events_path)
         for dir_name in dir_names:
             self._load_and_add_rule_data(
-                dir_name, rule_set_events_path, rule_set_rules_path
+                dir_name, rule_set_events_path, rule_set_rules_path, evasions_base_path
             )
 
     def _get_event_dir_names(self, rule_set_events_dir):
@@ -871,21 +907,28 @@ class RuleSetDataset:
             return []
 
     def _load_and_add_rule_data(
-        self, rule_dir_name, rule_set_events_path, rule_set_rules_path
+        self, rule_dir_name, rule_set_events_path, rule_set_rules_path, evasions_base_path=None
     ):
         try:
             rule_data = self._load_rule_data(
-                rule_dir_name, rule_set_events_path, rule_set_rules_path
+                rule_dir_name, rule_set_events_path, rule_set_rules_path, evasions_base_path
             )
             self._add_rule_dataset(rule_data)
         except RuleDatasetError as err:
             _logger.info(err)
 
-    def _load_rule_data(self, rule_dir_name, rule_set_events_path, rule_set_rules_path):
+    def _load_rule_data(self, rule_dir_name, rule_set_events_path, rule_set_rules_path, evasions_base_path=None):
         rule_data_events_path = os.path.join(rule_set_events_path, rule_dir_name)
         rule_data_rule_path = os.path.join(rule_set_rules_path, f"{rule_dir_name}.yml")
+
+        ## Add evasion path
+        evasions_path= None
+        if evasions_base_path:
+            evasions_path = os.path.join(evasions_base_path,rule_dir_name)
+
+
         rule_data = RuleDataset(rule_dir_name, self._type)
-        rule_data.load_events_and_filter(rule_data_events_path, rule_data_rule_path)
+        rule_data.load_events_and_filter(matches_path=rule_data_events_path, rule_path=rule_data_rule_path, evasions_path=evasions_path)
 
         return rule_data
 
