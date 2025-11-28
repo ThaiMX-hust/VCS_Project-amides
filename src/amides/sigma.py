@@ -317,6 +317,8 @@ class RuleDataset:
         """
         _logger.debug("Loading rule dataset for %s", self._name)
         self._load_matches_and_evasions(matches_path,evasions_path)
+
+        print(f"Evasion path {evasions_path}")
         self._load_rule_filter(rule_path)
 
     def _load_matches_and_evasions(self, matches_path, evasions_path):
@@ -335,9 +337,11 @@ class RuleDataset:
         self._insert_matches(matches_path)
 
         if evasions_path and os.path.exists(evasions_path):
+            print(f"Loading evasion for {self._name} from {evasions_path}")
             _logger.debug("Loading evasion for %s from %s", self._name, evasions_path )
             self._insert_evasions(evasions_path)
         else:
+            #print(f"Loading evasions for {self._name} from {matches_path}")
             _logger.debug("Loading evasions for %s from %s", self._name, matches_path)
             self._insert_evasions(matches_path)
 
@@ -347,7 +351,7 @@ class RuleDataset:
         #     matches_path,
         # )
 
-        self._insert_matches_and_evasions(matches_path, evasions_path)
+        #self._insert_matches_and_evasions(matches_path, evasions_path)
 
         if self._matches.size == 0:
             _logger.debug("No matches for rule %s", self._name)
@@ -369,6 +373,44 @@ class RuleDataset:
 
     def _insert_evasions(self, events_dir_path):
         """Load only evasion files from the specified directory"""
+        evasion_subfolder = os.path.join(events_dir_path,"evasion")
+        print(f"evasion subfolder {evasion_subfolder}")
+        if os.path.exists(evasion_subfolder):
+            self._load_evasions_from_txt_folder(evasion_subfolder)
+        else:
+            self._load_evasions_from_json_folder(events_dir_path)
+    
+    def _load_evasions_from_txt_folder(self, evasion_dir):
+        """Load .txt evasion files"""
+        try:
+            evasion_files= glob.glob(os.path.join(evasion_dir,"*.txt"))
+            for evasion_file in evasion_files:
+                try:
+                    with open(evasion_file, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line=  line.strip()
+                            if line:
+                                event ={"process":{"command_line":line}}
+                                self._evasions.add_event(event)
+                    _logger.debug(f"Loaded evasions from {evasion_file}")
+                except Exception as e:
+                    _logger.warning(f"Error reading {evasion_file} : {e}")
+        except Exception as err:
+            _logger.warning(f"No evasions found in {evasion_dir}: {err}")
+
+
+    def _load_rule_filter(self, rule_path):
+        try:
+            _logger.debug("Loading rule filter from '%s'", rule_path)
+            #print(f"rule path: {rule_path}")
+            rules = read_yaml_file(rule_path)
+            self._filter = self._extract_rule_filters(rules)
+            self._name = self._extract_rule_name(rules)
+        except (TypeError, IndexError, FileNotFoundError) as err:
+            raise RuleDatasetError(self._name, "No rule filter available") from err
+
+    def _load_evasions_from_json_folder(self, events_dir_path):
+        """Load .json evasion files (old format)"""
         try:
             event_file_names = self._get_events_file_names(events_dir_path)
             for event_file_name in event_file_names:
@@ -377,16 +419,7 @@ class RuleDataset:
                     if event is not None:
                         self._evasions.add_event(event)
         except RuleDatasetError as err:
-            _logger.warning("No evasions found for %s in %s", self._name, events_dir_path)
-    def _load_rule_filter(self, rule_path):
-        try:
-            _logger.debug("Loading rule filter from '%s'", rule_path)
-            rules = read_yaml_file(rule_path)
-            self._filter = self._extract_rule_filters(rules)
-            self._name = self._extract_rule_name(rules)
-        except (TypeError, IndexError, FileNotFoundError) as err:
-            raise RuleDatasetError(self._name, "No rule filter available") from err
-
+            _logger.warning(f"No evasions found for {self._name} in {events_dir_path}: {err}")
     def _extract_rule_filters(self, rules):
         rule_filters = []
 

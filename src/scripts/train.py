@@ -288,7 +288,7 @@ def create_malicious_sample_list(rule_set_data: RuleSetDataset):
         samples = rule_set_data.extract_field_values_from_filter(
             search_fields=["process.command_line"]
         )
-
+    print(f"so malicious samples {len(samples)}")
     return normalize(samples)
 
 
@@ -755,3 +755,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    print(events_dir)
+    print(rules_dir)

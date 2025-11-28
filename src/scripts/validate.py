@@ -43,14 +43,14 @@ set_log_level("info")
 _logger = get_logger("validate")
 
 base_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../../"))
-sigma_dir = os.path.join(base_dir, "data/sigma")
-events_dir = os.path.join(sigma_dir, "events/windows/process_creation")
-rules_dir = os.path.join(sigma_dir, "rules/windows/process_creation")
+sigma_dir = os.path.join(base_dir, "data")
+events_dir = os.path.join(sigma_dir, "events/process_creation")
+rules_dir = os.path.join(sigma_dir, "rules/process_creation")
 
 rule_set_data = None
 result_paths = None
 
-benign_samples_path = os.path.join(base_dir, "data/socbed/process_creation/valid")
+benign_samples_path = os.path.join(base_dir, "data/benign/process_creation/valid")
 num_benign_samples = 0
 
 save_data = False
@@ -94,7 +94,9 @@ def load_pc_rules_dataset():
     try:
         if not rule_set_data:
             rule_set_data = RuleSetDataset()
-            rule_set_data.load_rule_set_data(events_dir, rules_dir)
+
+            evasions_base = os.path.join("data/evasion")
+            rule_set_data.load_rule_set_data(events_dir, rules_dir, evasions_base)
 
         return rule_set_data
     except FileNotFoundError as err:
