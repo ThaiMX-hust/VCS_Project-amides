@@ -1,6 +1,6 @@
 import re
 import os
-
+import glob
 from enum import Enum, auto
 from luqum.parser import parser, ParseSyntaxError, IllegalCharacterError
 from luqum.visitor import TreeVisitor
@@ -318,7 +318,7 @@ class RuleDataset:
         _logger.debug("Loading rule dataset for %s", self._name)
         self._load_matches_and_evasions(matches_path,evasions_path)
 
-        print(f"Evasion path {evasions_path}")
+        #print(f"Evasion path {evasions_path}")
         self._load_rule_filter(rule_path)
 
     def _load_matches_and_evasions(self, matches_path, evasions_path):
@@ -337,7 +337,7 @@ class RuleDataset:
         self._insert_matches(matches_path)
 
         if evasions_path and os.path.exists(evasions_path):
-            print(f"Loading evasion for {self._name} from {evasions_path}")
+            #print(f"Loading evasion for {self._name} from {evasions_path}")
             _logger.debug("Loading evasion for %s from %s", self._name, evasions_path )
             self._insert_evasions(evasions_path)
         else:
@@ -374,7 +374,7 @@ class RuleDataset:
     def _insert_evasions(self, events_dir_path):
         """Load only evasion files from the specified directory"""
         evasion_subfolder = os.path.join(events_dir_path,"evasion")
-        print(f"evasion subfolder {evasion_subfolder}")
+        #print(f"evasion subfolder {evasion_subfolder}")
         if os.path.exists(evasion_subfolder):
             self._load_evasions_from_txt_folder(evasion_subfolder)
         else:

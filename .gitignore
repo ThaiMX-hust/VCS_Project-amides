@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+vcs-amides/
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+notebooks/.ipynb_checkpoints/
+
+# Models & Results
+models/**/*.pkl
+models/**/*.zip
+models/**/*.joblib
+*.model
+
+# Data files (nếu không muốn commit data)
+# Uncomment nếu data quá lớn
+# data/benign/**/*.txt
+# data/benign/**/*.json
+# data/events/**/*.json
+# data/evasion/**/*.json
+# data/malicious/**/*.json
+
+# Logs
+*.log
+logs/
+*.out
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Build & Distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Environment variables
+.env
+.env.local
+
+# Output directories
+output/
+results/
+temp/
+tmp/
+
+# Compiled files
+*.pyc
+*.pyo
+
+# Package files
+*.egg
+*.whl

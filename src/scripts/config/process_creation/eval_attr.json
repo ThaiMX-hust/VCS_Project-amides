@@ -1,5 +1,5 @@
 {
-    "multi_result": "../models/process_creation/multi_train_rslt_attr_svc_rules_f1_0.zip",
+    "multi_result": "/home/kali/Documents/VCS_Project-amides/src/models/process_creation/multi_train_rslt_attr_svc_rules_f1_0.zip",
     "benign_samples": "/home/kali/Documents/VCS_Project-amides/data/benign/process_creation/train",
     "events_dir": "/home/kali/Documents/VCS_Project-amides/data/events/process_creation",
     "rules_dir": "/home/kali/Documents/VCS_Project-amides/data/rule/process_creation",

@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 """
 Script to detect malicious events and identify which rule they are trying to evade.
-
-This script:
-1. Loads the misuse classification model to detect if an event is malicious
-2. If malicious, loads rule attribution models to identify which rule is being evaded
-3. Ranks rules by confidence scores to show top bypass targets
 """
 
 import sys
@@ -27,29 +22,49 @@ from amides.data import TrainingResult, MultiTrainingResult
 set_log_level("info")
 _logger = get_logger("detect_evasion")
 
-base_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../"))
+base_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../../"))
 
-# Default paths
-misuse_model_path = os.path.join(base_dir, "models/process_creation/train_rslt_misuse_svc_rules_f1_0.zip")
-rule_attr_model_path = os.path.join(base_dir, "models/process_creation/multi_train_rslt_attr_svc_rules_f1_0.zip")
+
+misuse_model_path = os.path.join(base_dir, "src/models/process_creation/train_rslt_misuse_svc_rules_f1_0.zip")
+rule_attr_model_path = os.path.join(base_dir, "src/models/process_creation/multi_train_rslt_attr_svc_rules_f1_0.zip")
 
 # Thresholds
-malicious_threshold = 0.5  # Decision boundary for misuse detection
-min_confidence = 0.0  # Minimum confidence to show rule attribution
-
-# Number of top rules to display
+malicious_threshold = 0.5
+min_confidence = 0.0
 top_n_rules = 5
+
+# ✅ THÊM: Global dumper
+dumper = None
+
+
+def init_dumper(models_dir: str):
+    """Initialize Dumper with models directory"""
+    global dumper
+    
+    try:
+        if dumper is None:
+            dumper = Dumper(models_dir)
+            _logger.info(f"Initialized dumper with models directory: {models_dir}")
+    except OSError as err:
+        _logger.error(f"Failed to initialize dumper: {err}")
+        sys.exit(1)
 
 
 def load_model(model_path: str):
-    """Load a trained model from pickle file."""
+    """
+    Load a trained model from pickle file.
+    ✅ SỬA: Dùng global dumper và load_object()
+    """
     try:
-        dumper = Dumper(os.path.dirname(model_path))
         model_name = os.path.basename(model_path).replace('.zip', '')
+        
+        _logger.info(f"Loading model from: {model_path}")
         result = dumper.load_object(model_name)
-        _logger.info(f"Loaded model: {model_name}")
+        
+        _logger.info(f"Successfully loaded model: {model_name}")
         return result
-    except (FileNotFoundError, PersistError) as err:
+        
+    except (TypeError, PersistError, FileNotFoundError) as err:
         _logger.error(f"Error loading model from {model_path}: {err}")
         return None
 
@@ -57,26 +72,23 @@ def load_model(model_path: str):
 def extract_and_normalize_commandline(event_data: dict) -> Optional[str]:
     """
     Extract and normalize commandline from event data.
-    
-    Parameters
-    ----------
-    event_data : dict
-        Event data in JSON format (Sysmon or similar)
-    
-    Returns
-    -------
-    str or None
-        Normalized commandline string
+    ✅ SỬA: Thêm hỗ trợ nested structure
     """
     try:
-        # Try different possible field names for commandline
         commandline = None
-        possible_fields = ['CommandLine', 'commandline', 'command_line', 'cmd']
+        possible_fields = ['CommandLine', 'commandline', 'command_line', 'cmd', 'process']
         
-        for field in possible_fields:
-            if field in event_data:
-                commandline = event_data[field]
-                break
+        # Check nested structures
+        if 'process' in event_data and isinstance(event_data['process'], dict):
+            if 'command_line' in event_data['process']:
+                commandline = event_data['process']['command_line']
+        
+        # Check top-level fields
+        if commandline is None:
+            for field in possible_fields:
+                if field in event_data:
+                    commandline = event_data[field]
+                    break
         
         if commandline is None:
             _logger.warning("Could not find commandline field in event data")
@@ -97,29 +109,25 @@ def predict_malicious(
 ) -> Tuple[bool, float]:
     """
     Predict if a commandline is malicious.
-    
-    Parameters
-    ----------
-    misuse_result : TrainingResult
-        Trained misuse classification model
-    commandline : str
-        Normalized commandline string
-    
-    Returns
-    -------
-    tuple
-        (is_malicious: bool, confidence: float)
+    ✅ SỬA: Dùng feature_extractors[0] thay vì vectorizer
     """
     try:
-        # Transform commandline to feature vector
-        feature_vector = misuse_result.vectorizer.transform([commandline])
+        # ✅ Get feature extractor
+        feature_extractor = misuse_result.feature_extractors[0] if misuse_result.feature_extractors else None
+        
+        if feature_extractor is None:
+            _logger.error("Model does not contain feature extractor")
+            return False, 0.0
+        
+        # Transform với np.array wrapper
+        feature_vector = feature_extractor.transform(np.array([commandline]))
         
         # Get decision function value
         df_value = misuse_result.estimator.decision_function(feature_vector)[0]
         
-        # Scale if scaler is available
+        # ✅ Scale đúng cách
         if misuse_result.scaler:
-            df_value_scaled = misuse_result.scaler.transform([[df_value]])[0][0]
+            df_value_scaled = misuse_result.scaler.transform(np.array([[df_value]])).flatten()[0]
         else:
             df_value_scaled = df_value
         
@@ -140,34 +148,28 @@ def predict_rule_attribution(
 ) -> List[Tuple[str, float]]:
     """
     Predict which rules the commandline is trying to evade.
-    
-    Parameters
-    ----------
-    rule_attr_result : MultiTrainingResult
-        Trained rule attribution models
-    commandline : str
-        Normalized commandline string
-    top_n : int
-        Number of top rules to return
-    
-    Returns
-    -------
-    list
-        List of tuples (rule_name, confidence_score) sorted by confidence
+    ✅ SỬA: Dùng feature_extractors[0]
     """
     rule_scores = []
     
     try:
         for rule_name, result in rule_attr_result.results.items():
-            # Transform commandline to feature vector
-            feature_vector = result.vectorizer.transform([commandline])
+            # ✅ Get feature extractor
+            feature_extractor = result.feature_extractors[0] if result.feature_extractors else None
+            
+            if feature_extractor is None:
+                _logger.warning(f"No feature extractor for rule: {rule_name}")
+                continue
+            
+            # Transform
+            feature_vector = feature_extractor.transform(np.array([commandline]))
             
             # Get decision function value
             df_value = result.estimator.decision_function(feature_vector)[0]
             
-            # Scale if scaler is available
+            # ✅ Scale đúng cách
             if result.scaler:
-                df_value_scaled = result.scaler.transform([[df_value]])[0][0]
+                df_value_scaled = result.scaler.transform(np.array([[df_value]])).flatten()[0]
             else:
                 df_value_scaled = df_value
             
@@ -191,25 +193,7 @@ def analyze_event(
     rule_attr_result: MultiTrainingResult,
     verbose: bool = True
 ) -> dict:
-    """
-    Analyze a single event for malicious behavior and rule evasion.
-    
-    Parameters
-    ----------
-    event_data : dict
-        Event data in JSON format
-    misuse_result : TrainingResult
-        Misuse classification model
-    rule_attr_result : MultiTrainingResult
-        Rule attribution models
-    verbose : bool
-        Print detailed output
-    
-    Returns
-    -------
-    dict
-        Analysis results
-    """
+    """Analyze a single event for malicious behavior and rule evasion."""
     # Extract and normalize commandline
     commandline = extract_and_normalize_commandline(event_data)
     
@@ -271,32 +255,13 @@ def analyze_event_from_file(
     misuse_result: TrainingResult,
     rule_attr_result: MultiTrainingResult
 ) -> dict:
-    """
-    Analyze an event from a JSON file.
-    
-    Parameters
-    ----------
-    event_file : str
-        Path to event JSON file
-    misuse_result : TrainingResult
-        Misuse classification model
-    rule_attr_result : MultiTrainingResult
-        Rule attribution models
-    
-    Returns
-    -------
-    dict
-        Analysis results
-    """
+    """Analyze an event from a JSON file."""
     try:
         event_data = read_json_file(event_file)
         return analyze_event(event_data, misuse_result, rule_attr_result)
     except Exception as err:
         _logger.error(f"Error reading event file: {err}")
-        return {
-            'success': False,
-            'error': str(err)
-        }
+        return {'success': False, 'error': str(err)}
 
 
 def analyze_event_from_commandline(
@@ -304,23 +269,7 @@ def analyze_event_from_commandline(
     misuse_result: TrainingResult,
     rule_attr_result: MultiTrainingResult
 ) -> dict:
-    """
-    Analyze a raw commandline string.
-    
-    Parameters
-    ----------
-    commandline : str
-        Raw commandline string
-    misuse_result : TrainingResult
-        Misuse classification model
-    rule_attr_result : MultiTrainingResult
-        Rule attribution models
-    
-    Returns
-    -------
-    dict
-        Analysis results
-    """
+    """Analyze a raw commandline string."""
     event_data = {'CommandLine': commandline}
     return analyze_event(event_data, misuse_result, rule_attr_result)
 
@@ -337,8 +286,8 @@ def main():
     parser.add_argument(
         '--commandline',
         type=str,
-        default="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NonInteractive -ExecutionPolicy bypass $encodedCommand",
-        help='Raw commandline string to analyze'
+        help='Raw commandline string to analyze',
+        default='"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -NonInteractive -ExecutionPolicy bypass $encodedCommand'
     )
     parser.add_argument(
         '--misuse-model',
@@ -351,6 +300,12 @@ def main():
         type=str,
         default=rule_attr_model_path,
         help='Path to rule attribution model'
+    )
+    parser.add_argument(
+        '--models-dir',
+        type=str,
+        default=os.path.join(base_dir, "src/models/process_creation"),  # ← Thêm src/
+        help='Directory containing models'
     )
     parser.add_argument(
         '--threshold',
@@ -389,6 +344,9 @@ def main():
         _logger.error("Must provide either --event-file or --commandline")
         sys.exit(1)
     
+    # ✅ THÊM: Initialize dumper
+    init_dumper(args.models_dir)
+    
     # Load models
     _logger.info("Loading models...")
     misuse_result = load_model(args.misuse_model)
@@ -396,6 +354,15 @@ def main():
     
     if not misuse_result or not rule_attr_result:
         _logger.error("Failed to load required models")
+        sys.exit(1)
+    
+    # ✅ THÊM: Validate model types
+    if not isinstance(misuse_result, TrainingResult):
+        _logger.error("Misuse model is not TrainingResult type")
+        sys.exit(1)
+    
+    if not isinstance(rule_attr_result, MultiTrainingResult):
+        _logger.error("Rule attribution model is not MultiTrainingResult type")
         sys.exit(1)
     
     # Analyze event
