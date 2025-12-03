@@ -1,7 +1,7 @@
 {
     "estimator": "SVC",
     "estimator_params": {
-        "C": 1.5998587196060574,
+        "C": 2.1209508879201904,
         "break_ties": false,
         "cache_size": 2000,
         "class_weight": null,
@@ -20,14 +20,14 @@
     "data": {
         "train_data": {
             "shape": [
-                1160,
-                851
+                7582,
+                3103
             ],
             "feature_info": [],
             "class_info": {
                 "num_positive_samples": 810,
-                "num_negative_samples": 350,
-                "positive_negative_ratio": 2.3142857142857145
+                "num_negative_samples": 6772,
+                "positive_negative_ratio": 0.11961015948021264
             }
         },
         "test_data": null,
@@ -38,11 +38,11 @@
     "tainted_seed": 81,
     "scaler": {
         "type": "MinMaxScaler",
-        "data_min": -1.559993150822337,
-        "data_max": 1.559993150822337,
-        "range": 3.119986301644674,
-        "scale": 0.3205142277300572,
-        "min": 0.5
+        "data_min": -1.9083275960769401,
+        "data_max": 1.9083275960769401,
+        "range": 3.8166551921538803,
+        "scale": 0.2620095213357911,
+        "min": 0.49999999999999994
     },
     "feature_extractors": [
         "TfidfVectorizer"

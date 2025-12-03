@@ -21,6 +21,7 @@ base_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../../"))
 sigma_dir = os.path.join(base_dir, "data/sigma-study")
 events_dir = os.path.join(sigma_dir, "events/windows/process_creation")
 rules_dir = os.path.join(sigma_dir, "rules/windows/process_creation")
+evasions_base_dir =os.path.join(base_dir, "data/evasion")
 
 benign_events = os.path.join(base_dir, "data/socbed/validation.txt")
 
@@ -87,7 +88,12 @@ def create_rules_evasions_dict(rules_data):
 def load_rule_set_data():
     try:
         rule_set = RuleSetDataset()
-        rule_set.load_rule_set_data(events_dir, rules_dir)
+        rule_set.load_rule_set_data(events_dir, rules_dir, evasions_base_path=evasions_base_dir)
+        rules_with_evasions = sum(
+            1 for rule_data in rule_set.rule_datasets.values() 
+            if rule_data.evasions and rule_data.evasions.size > 0
+        )
+        logger.info(f"Rules with evasions: {rules_with_evasions}")
 
         return rule_set
     except FileNotFoundError as err:
@@ -127,6 +133,7 @@ def unpack_clf_and_feature_extractor(result):
 
 
 def prepare_rule_attribution():
+    logger.info(f"Loading multi-training result from {multi_result_path}")
     multi_result = load_pickled_object(multi_result_path)
 
     global rule_attributor
@@ -205,6 +212,10 @@ def parse_args_and_options(parser):
     if args.rules_dir:
         global rules_dir
         rules_dir = args.rules_dir
+    
+    if args.evasions_dir:
+        global evasions_base_dir
+        evasions_base_dir = args.evasions_dir
 
     global out_dir
     if args.out_dir:
@@ -223,6 +234,13 @@ def main():
         type=str,
         action="store",
         help="File containing benign samples",
+    )
+    parser.add_argument(
+        "--evasions-dir",
+        "-e",
+        type=str,
+        action="store",
+        help="Base directory where evasion samples are located"
     )
     parser.add_argument(
         "--events-dir",

@@ -1,0 +1,21 @@
+{
+    "name": "eval_rl_attr",
+    "timestamp": "",
+    "num_rules": 132,
+    "num_total_samples": 511,
+    "num_incomplete_samples": 0,
+    "results": {
+        "tp": 511,
+        "fp": 0,
+        "tn": 0,
+        "fn": 0,
+        "total_hits": 508.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "top_1_hits": 279.0,
+        "top_1_hit_rate": 0.5492125984251969,
+        "top_10_hits": 487.0,
+        "top_10_hit_rate": 0.9586614173228346
+    }
+}

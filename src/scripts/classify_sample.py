@@ -26,10 +26,10 @@ _logger = get_logger("classify_sample")
 base_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../../"))
 
 # Default model paths
-MODELS_DIR = os.path.join(base_dir, "src/models/process_creation")
+MODELS_DIR = os.path.join(base_dir, "models/process_creation")
 MISUSE_MODEL_NAME = "train_rslt_misuse_svc_rules_f1_0"
 #ATTR_MODEL_NAME = "multi_train_rslt_attr_svc_rules_f1_0"
-ATTR_MODEL_NAME = "multi_train_rslt_attr_svc_rules_f1_full_0"
+ATTR_MODEL_NAME = "multi_train_rslt_attr_svc_rules_f1_v2_0"
 
 # Classification thresholds
 DEFAULT_THRESHOLD = 0.5
