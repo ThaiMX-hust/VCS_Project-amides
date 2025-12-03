@@ -28,7 +28,8 @@ base_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "../../"))
 # Default model paths
 MODELS_DIR = os.path.join(base_dir, "src/models/process_creation")
 MISUSE_MODEL_NAME = "train_rslt_misuse_svc_rules_f1_0"
-ATTR_MODEL_NAME = "multi_train_rslt_attr_svc_rules_f1_0"
+#ATTR_MODEL_NAME = "multi_train_rslt_attr_svc_rules_f1_0"
+ATTR_MODEL_NAME = "multi_train_rslt_attr_svc_rules_f1_full_0"
 
 # Classification thresholds
 DEFAULT_THRESHOLD = 0.5
@@ -227,7 +228,7 @@ class SampleClassifier:
 
 
 def init_dumper(models_dir: str):
-    """Initialize global Dumper - GIỐNG validate.py"""
+    """Initialize global Dumper"""
     global dumper
     
     try:
@@ -433,7 +434,7 @@ Examples:
         _logger.error("Failed to extract commandline from input")
         sys.exit(1)
     
-    # Initialize dumper (QUAN TRỌNG!)
+    # Initialize dumper
     init_dumper(args.models_dir)
     
     # Load models using Dumper.load_object()
