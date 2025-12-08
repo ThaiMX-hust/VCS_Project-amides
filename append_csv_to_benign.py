@@ -18,7 +18,7 @@ def append_csv_to_benign(csv_path: str, benign_file: str):
         print(f"[*] Reading CSV: {csv_path}")
         df = pd.read_csv(csv_path)
         
-        # Check for CommandLine or CommandLine_norm column
+        # Check for CommandLine 
         
         if 'CommandLine' in df.columns:
             column_name = 'CommandLine'

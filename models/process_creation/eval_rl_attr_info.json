@@ -13,9 +13,9 @@
         "precision": 1.0,
         "recall": 1.0,
         "f1_score": 1.0,
-        "top_1_hits": 279.0,
-        "top_1_hit_rate": 0.5492125984251969,
-        "top_10_hits": 487.0,
-        "top_10_hit_rate": 0.9586614173228346
+        "top_1_hits": 355.0,
+        "top_1_hit_rate": 0.6988188976377953,
+        "top_10_hits": 490.0,
+        "top_10_hit_rate": 0.9645669291338582
     }
 }
